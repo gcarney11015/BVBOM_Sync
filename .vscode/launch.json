@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
                         "env": {
-                            "AWS_PROFILE": "iq"
+                            "AWS_PROFILE": "bv"
                         },
         },
         {

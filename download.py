@@ -1,24 +1,69 @@
 import boto3
 import copy
 import json
+import os
 
 
-def fieldToLiteral(field):
-    literal = copy.deepcopy(field)
+def list_value(field, obj):
+    if not field in obj:
+        return None
+    value = obj[field]
+    if not isinstance(value, list):
+        return None
+    return value
+
+
+def single_value(field, obj):
+    if not field in obj:
+        return None
+    value = obj[field]
+    if not isinstance(value, list):
+        return value
+    if len(value) == 0:
+        return None
+    return value[0]
+
+
+def hitFieldsToAddFields(hitFields):
+    values = {
+        'activity_date': single_value('activity_date', hitFields),
+        'activity_type': single_value('activity_type', hitFields),
+        'associated_items': list_value('associated_items', hitFields),
+        'content': single_value('content', hitFields),
+        'content_encoding': single_value('content_encoding', hitFields),
+        'content_type': single_value('content_type', hitFields),
+        'date_indexed': single_value('date_indexed', hitFields),
+        'description': single_value('description', hitFields),
+        'discipline': single_value('discipline', hitFields),
+        'discipline_literal': single_value('discipline', hitFields),        
+        'keywords': list_value('keywords', hitFields),
+        'keywords_literal': list_value('keywords', hitFields),
+        'links': list_value('links', hitFields),
+        'project_name': single_value('project_name', hitFields),
+        'project_name_literal': single_value('project_name', hitFields),
+        'project_number': single_value('project_number', hitFields),
+        'resourcename': single_value('resourcename', hitFields),
+        'source': single_value('source', hitFields),
+        'source_literal': single_value('source', hitFields),
+        'title': single_value('title', hitFields),
+    }
+
+    result = {}
+
+    for k, v in values.items():
+        if not v is None:
+            result[k] = v
+
+    return result
 
 
 def hitToAdd(hit):
-    add = copy.deepcopy(hit)
-    add['type'] = 'add'
-
-    hitFields = hit['fields']
-
-    for sourceName in ['discipline', 'keywords', 'project_name', 'source']:
-        if sourceName in hitFields:
-            sourceValue = hitFields[sourceName]
-            add['fields'][sourceName + '_literal'] = copy.deepcopy(sourceValue)
-
-    return add
+    result = {
+        'fields': hitFieldsToAddFields(hit['fields']),
+        'id': hit['id'],
+        'type': 'add',
+    }
+    return result
 
 
 def hitToDelete(hit):
@@ -40,18 +85,45 @@ def search(client, cursor, size):
     return response
 
 
-def generateAddsAndDeletes():
+def getCloudSearchDomain(name):
     cloudSearchClient = boto3.client('cloudsearch')
-    domains = cloudSearchClient.describe_domains(DomainNames=['bvmm04'])
+    domains = cloudSearchClient.describe_domains(DomainNames=[name])
+    domainStatusList = domains['DomainStatusList']
+    if len(domainStatusList) == 1:
+        return domainStatusList[0]
+    else:
+        return None
 
-    # print(json.dumps(domains, indent=2))
 
-    searchEndpoint = domains['DomainStatusList'][0]['SearchService']['Endpoint']
+def uploadDocuments(path):
+    domain = getCloudSearchDomain('mat-tracking')
+    # print(json.dumps(domain, indent=2))
+    endpoint = domain['DocService']['Endpoint']
+    client = boto3.client('cloudsearchdomain', endpoint_url='https://' + endpoint)
+
+    files = [os.path.join(path, f) for f in os.listdir(path)
+        if os.path.isfile(os.path.join(path, f)) and f.endswith('.json')]
+    files.sort()
+
+    for file in files:
+        with open(file, 'rb') as f:
+            print(file, end='')
+            response = client.upload_documents(
+                documents=f,
+                contentType='application/json'
+            )
+            print(f" a: {response['adds']}, d: {response['deletes']}")
+        f.closed
+
+
+def generateAddsAndDeletes():
+    domain = getCloudSearchDomain('bvmm04')
+    searchEndpoint = domain['SearchService']['Endpoint']
 
     cloudSearchDomainClient = boto3.client('cloudsearchdomain',
                                            endpoint_url='https://' + searchEndpoint)
 
-    BatchSize = 500
+    BatchSize = 250
     cursor = 'initial'
 
     while True:
@@ -83,4 +155,5 @@ def generateAddsAndDeletes():
         cursor = response['hits']['cursor']
 
 
-generateAddsAndDeletes()
+# generateAddsAndDeletes()
+uploadDocuments('./add')
