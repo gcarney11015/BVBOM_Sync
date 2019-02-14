@@ -9,11 +9,11 @@ This functionality is Docker-ized to support building a container that can run t
 
 ## Python Environment
 
-The server project uses Python virtual environments to ensure correct interpreter versions and dependencies. The virtual environment should be activated whenever Python-related activities are performed (i.e. running apps, installing packages, etc.).
+The project uses Python 3.7.x. It is recommended to use virtual environments to ensure correct interpreter versions and dependencies. The virtual environment should be activated whenever Python-related activities are performed (i.e. running apps, installing packages, etc.).
 
-1. Activate the Python virtual environment: `source ./venv/bin/activate`. `python --version` should report Python 3.7.2.
-2. Install required packages: `pip install -r requirements.txt`
-
+1. Create a Python 3.7.x virtual environmet: `python3 -m venv venv`
+2. Activate the virtual environment: `source ./venv/bin/activate`. `python --version` should report Python 3.7.x.
+3. Install required packages: `pip install -r requirements.txt`
 
 ## Run the Synchronization Process
 
