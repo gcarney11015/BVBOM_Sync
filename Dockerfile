@@ -9,6 +9,6 @@ RUN pip install -r requirements.txt
 COPY synchronize.sh /app
 RUN chmod +x /app/synchronize.sh
 
-COPY pkg /app
+COPY pkg /app/pkg
 
-CMD ["synchronize.sh"]
+CMD ["/app/synchronize.sh"]
