@@ -22,10 +22,10 @@
             "env": {
                 "AWS_PROFILE": "bv",
                 "SYNC_CLOUDSEARCH_URL": "https://search-mat-tracking-eou435pggpmnyzh7pjnxfskpga.us-east-1.cloudsearch.amazonaws.com",
-                "SYNC_RECORDS_PER_FILE": 500,
+                "SYNC_RECORDS_PER_FILE": 1000,
                 "SYNC_S3_BUCKET_NAME": "mat-tracking-item-db-backup",
-                "SYNC_S3_KEY_PREFIX": "foo/",
-                "SYNC_SEARCH_SIZE": 1000,
+                "SYNC_S3_FOLDER_NAME": "foo",
+                "SYNC_SEARCH_SIZE": 2000,
             },
             "args": [
                 "-m",

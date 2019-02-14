@@ -2,48 +2,14 @@ import boto3
 import io
 import json
 import os
-import rx
-from rx import AnonymousObservable, Observable
 import sys
 
 from .download import hitToSearch
 
 
-class CloudSearchDomainRx(AnonymousObservable):
-
-    def __init__(self, client, **searchArgs):
-
-        def subscribe(observer):
-            try:
-                response = client.search(**searchArgs)
-            except:
-                observer.on_error(sys.exc_info()[1])
-                return
-
-            observer.on_next(response)
-            observer.on_completed()
-
-        super(CloudSearchDomainRx, self).__init__(subscribe)
-
-
-class BucketUploadRx(AnonymousObservable):
-
-    def __init__(self, bucket, key, data):
-
-        def subscribe(observer):
-            try:
-                bucket.upload_fileobj(data, key)
-            except:
-                observer.on_error(sys.exc_info()[1])
-                return
-
-            observer.on_completed()
-
-        super(BucketUploadRx, self).__init__(subscribe)
-
 def hitsToFilenameAndStream(hits):
     if len(hits) == 0:
-        return ('none.json', io.BytesIO(None))
+        return None
 
     filename = hits[0]['id'] + '.json'
 
@@ -55,22 +21,18 @@ def hitsToFilenameAndStream(hits):
     stream = io.BytesIO(data)
     return (filename, stream)
 
+def listToGroups(list, itemsPerGroup):
+    result = []
+    start = 0
+    while start < len(list):
+        sublist = list[start: start + itemsPerGroup]
+        result.append(sublist)
+        start += itemsPerGroup
 
-def synchronize(searchUrl, searchSize, recordsPerFile, bucketName, keyPrefix):
-    def hitsToGroups(hits):
-        result = []
-        start = 0
-        while start < len(hits):
-            sublist = hits[start: start + recordsPerFile]
-            result.append(sublist)
-            start += recordsPerFile
+    return result
 
-        return result
 
-    def toUpload(bucket, key, stream):
-        return BucketUploadRx(bucket, key, stream) \
-            .do_action(on_completed = lambda: print('Uploaded: ' + key) )
-
+def synchronize(searchUrl, searchSize, recordsPerFile, bucketName, folderName):
     client = boto3.client('cloudsearchdomain',
                           endpoint_url=searchUrl)
 
@@ -78,34 +40,38 @@ def synchronize(searchUrl, searchSize, recordsPerFile, bucketName, keyPrefix):
     bucket = s3.Bucket(bucketName)
 
     cursor = 'initial'
+    filesUploaded = 0
+    recordsProcessed = 0
 
     while True:
-        try:
-            response = client.search(cursor=cursor,
-                                     partial=False,
-                                     query='matchall',
-                                     queryParser='structured',
-                                     size=searchSize,
-                                     sort='_id asc')
-        except:
-            print("Error Occurred: {0}".format(sys.exc_info()[1]))
-            break
+        response = client.search(cursor=cursor,
+            partial=False,
+            query='matchall',
+            queryParser='structured',
+            size=searchSize,
+            sort='_id asc')
 
         hits = response['hits']['hit']
 
-        Observable.of(hits) \
-            .map(hitsToGroups) \
-            .select_many(lambda it: Observable.from_(it)) \
-            .map(hitsToFilenameAndStream) \
-            .select_many(lambda it: toUpload(bucket, keyPrefix + it[0], it[1])) \
-            .subscribe(on_next=lambda value: print('Received: {0}'.format(value)),
-                       on_error=lambda error: print('Error Occurred: {0}'.format(error))
-        )
+        if len(hits) == 0:
+            break
+
+        groups = listToGroups(hits, recordsPerFile)
+        for group in groups:
+            fAndS = hitsToFilenameAndStream(group)
+            key = folderName + '/' + fAndS[0]
+            data = fAndS[1]
+            bucket.upload_fileobj(data, key)
+            print('Uploaded: {0}, {1} records'.format(key, len(group)))
+            filesUploaded += 1
+            recordsProcessed += len(group)
 
         if len(hits) < searchSize:
             break
 
-        cursor=response['hits']['cursor']
+        cursor = response['hits']['cursor']
+        
+    print('Processed {0} records in {1} files.'.format(recordsProcessed, filesUploaded))
 
 
 if __name__ == '__main__':
@@ -113,6 +79,6 @@ if __name__ == '__main__':
     searchSize = int(os.environ['SYNC_SEARCH_SIZE'])
     recordsPerFile = int(os.environ['SYNC_RECORDS_PER_FILE'])
     bucketName = os.environ['SYNC_S3_BUCKET_NAME']
-    keyPrefix = os.environ['SYNC_S3_KEY_PREFIX']
+    folderName = os.environ['SYNC_S3_FOLDER_NAME']
 
-    synchronize(searchUrl, searchSize, recordsPerFile, bucketName, keyPrefix)
+    synchronize(searchUrl, searchSize, recordsPerFile, bucketName, folderName)

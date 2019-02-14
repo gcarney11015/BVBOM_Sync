@@ -1,0 +1,7 @@
+
+export AWS_PROFILE="bv"
+export SYNC_CLOUDSEARCH_URL="https://search-mat-tracking-eou435pggpmnyzh7pjnxfskpga.us-east-1.cloudsearch.amazonaws.com"
+export SYNC_RECORDS_PER_FILE="1000"
+export SYNC_S3_BUCKET_NAME="mat-tracking-item-db-backup"
+export SYNC_S3_FOLDER_NAME="foo"
+export SYNC_SEARCH_SIZE="2000"
