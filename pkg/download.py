@@ -57,12 +57,17 @@ def hitFieldsToAddFields(hitFields):
     return result
 
 
-def hitToAdd(hit):
+def hitToSearch(hit):
     result = {
         'fields': hitFieldsToAddFields(hit['fields']),
         'id': hit['id'],
-        'type': 'add',
     }
+    return result
+
+
+def hitToAdd(hit):
+    result = hitToSearch(hit)
+    result['type'] = 'add'
     return result
 
 
@@ -156,4 +161,4 @@ def generateAddsAndDeletes():
 
 
 # generateAddsAndDeletes()
-uploadDocuments('./add')
+# uploadDocuments('./add')

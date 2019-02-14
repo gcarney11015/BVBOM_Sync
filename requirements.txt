@@ -5,6 +5,7 @@ docutils==0.14
 jmespath==0.9.3
 pycodestyle==2.5.0
 python-dateutil==2.8.0
+Rx==1.6.1
 s3transfer==0.1.13
 six==1.12.0
 urllib3==1.24.1

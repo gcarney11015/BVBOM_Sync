@@ -10,9 +10,27 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-                        "env": {
-                            "AWS_PROFILE": "bv"
-                        },
+            "env": {
+                "AWS_PROFILE": "bv"
+            },
+        },
+        {
+            "name": "Python: synchronize",
+            "type": "python",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "env": {
+                "AWS_PROFILE": "bv",
+                "SYNC_CLOUDSEARCH_URL": "https://search-mat-tracking-eou435pggpmnyzh7pjnxfskpga.us-east-1.cloudsearch.amazonaws.com",
+                "SYNC_RECORDS_PER_FILE": 500,
+                "SYNC_S3_BUCKET_NAME": "mat-tracking-item-db-backup",
+                "SYNC_S3_KEY_PREFIX": "foo/",
+                "SYNC_SEARCH_SIZE": 1000,
+            },
+            "args": [
+                "-m",
+                "pkg.synchronize",
+            ],
         },
         {
             "name": "Python: Remote Attach",
